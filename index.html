@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inter-Branch OSPF Routing Simulator</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script defer src="js/data.js"></script>
+  <script defer src="js/routingEngine.js"></script>
+  <script defer src="js/renderer.js"></script>
+  <script defer src="js/app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="top-header">
+      <div class="header-brand">
+        <h1>Inter-Branch OSPF Routing Simulator</h1>
+        <p>5-City Ring | Reference BW: 1000 Mbps | Area 0</p>
+      </div>
+      <div class="kpi-bar" id="kpi-bar">
+        <div class="kpi-badge">
+          <span class="kpi-label">Active Path</span>
+          <span class="kpi-value" id="kpi-path">DEL → JAI → MUM → BLR</span>
+        </div>
+        <div class="kpi-badge">
+          <span class="kpi-label">Total OSPF Cost</span>
+          <span class="kpi-value" id="kpi-cost">8</span>
+        </div>
+        <div class="kpi-badge">
+          <span class="kpi-label">End-to-End Delay</span>
+          <span class="kpi-value" id="kpi-delay">85 ms</span>
+        </div>
+        <div class="kpi-badge">
+          <span class="kpi-label">Bottleneck BW</span>
+          <span class="kpi-value" id="kpi-bw">200 Mbps</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="workspace-grid">
+      <section class="left-column">
+        <div class="card">
+          <div class="card-header">
+            <h2>Interactive Ring Topology</h2>
+            <span class="hint-text">Click any link to toggle UP/DOWN • Click any router to inspect RIB</span>
+          </div>
+          <div id="congestion-banner" class="warning-banner hidden">
+            Plain OSPF is ignoring congestion on Jaipur–Mumbai — Path B via Noida is faster!
+          </div>
+          <div class="svg-container">
+            <svg id="topology-svg" viewBox="0 0 800 520" role="img" aria-label="5-City OSPF Ring Topology"></svg>
+          </div>
+          <div class="legend-bar">
+            <span class="legend-item"><span class="swatch swatch-green"></span>Selected Path</span>
+            <span class="legend-item"><span class="swatch swatch-slate"></span>Standby Link</span>
+            <span class="legend-item"><span class="swatch swatch-red"></span>Failed Link</span>
+            <span class="legend-item"><span class="swatch swatch-amber"></span>Congested Link</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Congestion Delay Comparison (Delhi → Bengaluru)</h2>
+            <span class="hint-text">Path A (via Jaipur–Mumbai) vs. Path B (via Noida)</span>
+          </div>
+          <div class="chart-container">
+            <svg id="congestion-chart" viewBox="0 0 640 210" role="img" aria-label="Congestion Delay Crossover Chart"></svg>
+          </div>
+        </div>
+      </section>
+
+      <section class="right-column">
+        <div class="card">
+          <div class="card-header">
+            <h2>Simulation Controls</h2>
+          </div>
+          <div class="controls-grid">
+            <div class="control-group">
+              <label for="source-select">Source Router</label>
+              <select id="source-select"></select>
+            </div>
+            <div class="control-group">
+              <label for="dest-select">Destination Router</label>
+              <select id="dest-select"></select>
+            </div>
+            <div class="control-group full-span">
+              <label for="mode-select">Traffic Mode</label>
+              <select id="mode-select">
+                <option value="ospf">OSPF Default (Cost = 1000 ÷ BW)</option>
+                <option value="delay">Lowest Delay (Latency-Aware)</option>
+                <option value="bandwidth">Highest Bandwidth</option>
+              </select>
+            </div>
+            <div class="control-group full-span">
+              <div class="slider-header">
+                <label for="congestion-slider">Jaipur–Mumbai Congestion Delay</label>
+                <span class="mono-pill" id="congestion-value">50 ms</span>
+              </div>
+              <input type="range" id="congestion-slider" min="50" max="150" step="5" value="50">
+            </div>
+            <div class="control-group full-span checkbox-row">
+              <input type="checkbox" id="override-cost-checkbox">
+              <label for="override-cost-checkbox">Manual Cost Override (Set JAI–MUM OSPF Cost = 10)</label>
+            </div>
+          </div>
+          <div class="preset-bar">
+            <button type="button" class="btn btn-secondary" id="btn-reset">Reset All</button>
+            <button type="button" class="btn btn-danger" id="btn-cut-del-noi">Simulate Delhi–Noida Cut</button>
+            <button type="button" class="btn btn-outline" id="btn-cut-noi-blr">Simulate Noida–Blr Cut</button>
+            <button type="button" class="btn btn-warning" id="btn-heavy-congestion">Heavy Congestion (100 ms)</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Live Router RIB (<span class="mono">show ip route</span>)</h2>
+          </div>
+          <div class="router-tabs" id="router-tabs"></div>
+          <div class="table-wrap">
+            <table class="rib-table">
+              <thead>
+                <tr>
+                  <th>Destination LAN</th>
+                  <th>Next Hop</th>
+                  <th>Out Intf</th>
+                  <th>OSPF Cost</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="rib-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Convergence &amp; OSPF Event Log</h2>
+            <button type="button" class="btn-clear" id="btn-clear-log">Clear</button>
+          </div>
+          <div class="event-log" id="event-log"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
